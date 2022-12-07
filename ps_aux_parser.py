@@ -47,16 +47,16 @@ def generate_report(_formatted_data):
     command_with_max_of_mem = get_command_with_max_value_by_key(_formatted_data, "%MEM")
     command_with_max_of_cpu = get_command_with_max_value_by_key(_formatted_data, "%CPU")
     _report = list()
-    _report.append("Отчёт о состоянии системы:")
-    _report.append(f"Пользователи системы: {str(users)[1:-1]}")
-    _report.append(f"Процессов запущено: {process_count}")
-    _report.append("Пользовательских процессов:")
+    _report.append("System status report:")
+    _report.append(f"System users: {str(users)[1:-1]}")
+    _report.append(f"Processes running: {process_count}")
+    _report.append("User processes:")
     for key, value in sorted_processes_by_user.items():
         _report.append(f"{key}: {value}")
-    _report.append(f"Всего памяти используется: {mem_usage}%")
-    _report.append(f"Всего CPU используется: {cpu_usage}%")
-    _report.append(f"Больше всего памяти использует: {command_with_max_of_mem}")
-    _report.append(f"Больше всего CPU использует: {command_with_max_of_cpu}")
+    _report.append(f"Total memory used: {mem_usage}%")
+    _report.append(f"Total CPU used: {cpu_usage}%")
+    _report.append(f"Uses the most memory: {command_with_max_of_mem}")
+    _report.append(f"Most CPU used: {command_with_max_of_cpu}")
     return _report
 
 
