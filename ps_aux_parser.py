@@ -2,55 +2,77 @@ from datetime import datetime
 from subprocess import Popen, PIPE
 
 
-def get_run_ps_aux_result():
+def get_ps_aux_result():
     return Popen(['ps', 'aux'], stdout=PIPE).stdout.readlines()
 
 
-def get_formatted_data(data_list):
-    keys = data_list[0].decode("utf-8").split()
-    values_list = list(map(lambda item: item.decode("utf-8").split(), data_list[1:]))
-    return [dict(zip(keys, values)) for values in values_list]
+def get_formatted_data(_data_list):
+    _keys = _data_list[0].decode("utf-8").split()
+    _values_list = list(map(lambda item: item.decode("utf-8").split(), _data_list[1:]))
+    return [dict(zip(_keys, values)) for values in _values_list]
 
 
-def get_processes_count_by_user(dicts_list, user):
-    counter = 0
-    for item in dicts_list:
-        if item["USER"] == user:
-            counter += 1
-    return counter
+def get_user_list(_formatted_data):
+    return list(set(_item["USER"] for _item in _formatted_data))
 
 
-def get_sum_by_key(dicts_list, key):
-    return round(sum([float(item[key]) for item in dicts_list]), 1)
+def get_processes_count_by_user(_dicts_list, _user):
+    _count = 0
+    for item in _dicts_list:
+        if item["USER"] == _user:
+            _count += 1
+    return _count
 
 
-def get_command_with_max_value_by_key(dicts_list, key):
-    return max(dicts_list, key=lambda item: float(item[key]))["COMMAND"][:20]
+def get_sorted_processes_by_users(_formatted_data, _users):
+    _counts_list = [get_processes_count_by_user(_formatted_data, _user) for _user in _users]
+    _dict = dict(zip(_users, _counts_list))
+    return dict(sorted(_dict.items(), key=lambda item: item[1], reverse=True))
 
 
-formatted_data = get_formatted_data(get_run_ps_aux_result())
+def get_sum_by_key(_dicts_list, _key):
+    return round(sum([float(item[_key]) for item in _dicts_list]), 1)
 
-users = list(set(x["USER"] for x in formatted_data))
-process_count = len(formatted_data)
-mem_usage = get_sum_by_key(formatted_data, "%MEM")
-cpu_usage = get_sum_by_key(formatted_data, "%CPU")
-command_with_max_of_mem = get_command_with_max_value_by_key(formatted_data, "%MEM")
-command_with_max_of_cpu = get_command_with_max_value_by_key(formatted_data, "%CPU")
 
-report = []
-report.append("Отчёт о состоянии системы:")
-report.append(f"Пользователи системы: {users}")
-report.append(f"Процессов запущено: {process_count}")
-report.append("Пользовательских процессов:")
-for u in users:
-    report.append(f"{u}: {get_processes_count_by_user(formatted_data, u)}")
-report.append(f"Всего памяти используется: {mem_usage}%")
-report.append(f"Всего CPU используется: {cpu_usage}%")
-report.append(f"Больше всего памяти использует: {command_with_max_of_mem}")
-report.append(f"Больше всего CPU использует: {command_with_max_of_cpu}")
+def get_command_with_max_value_by_key(_dicts_list, _key):
+    return max(_dicts_list, key=lambda item: float(item[_key]))["COMMAND"][:20]
 
-print(*report, sep="\n")
 
-file_name = datetime.now().strftime("%d-%m-%Y-%H:%M-scan.txt")
-with open(file_name, 'w') as file:
-    file.writelines(f"{item}\n" for item in report)
+def generate_report(_formatted_data):
+    users = get_user_list(_formatted_data)
+    process_count = len(_formatted_data)
+    sorted_processes_by_user = get_sorted_processes_by_users(_formatted_data, users)
+    mem_usage = get_sum_by_key(_formatted_data, "%MEM")
+    cpu_usage = get_sum_by_key(_formatted_data, "%CPU")
+    command_with_max_of_mem = get_command_with_max_value_by_key(_formatted_data, "%MEM")
+    command_with_max_of_cpu = get_command_with_max_value_by_key(_formatted_data, "%CPU")
+    _report = list()
+    _report.append("Отчёт о состоянии системы:")
+    _report.append(f"Пользователи системы: {str(users)[1:-1]}")
+    _report.append(f"Процессов запущено: {process_count}")
+    _report.append("Пользовательских процессов:")
+    for key, value in sorted_processes_by_user.items():
+        _report.append(f"{key}: {value}")
+    _report.append(f"Всего памяти используется: {mem_usage}%")
+    _report.append(f"Всего CPU используется: {cpu_usage}%")
+    _report.append(f"Больше всего памяти использует: {command_with_max_of_mem}")
+    _report.append(f"Больше всего CPU использует: {command_with_max_of_cpu}")
+    return _report
+
+
+def output_to_console(_report):
+    print(*_report, sep="\n")
+
+
+def write_to_file(_metrics):
+    file_name = datetime.now().strftime("%d-%m-%Y-%H:%M-scan.txt")
+    with open(file_name, 'w') as file:
+        file.writelines(f"{item}\n" for item in report)
+
+
+if __name__ == '__main__':
+    ps_aux_result = get_ps_aux_result()
+    formatted_data = get_formatted_data(ps_aux_result)
+    report = generate_report(formatted_data)
+    output_to_console(report)
+    write_to_file(report)
